@@ -1,0 +1,31 @@
+[Unit]
+Description=UPS Monitoring Platform v2 (USR-W630 → PostgreSQL)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ups-monitor
+WorkingDirectory=/opt/ups-monitor/ups_monitor_v2
+ExecStart=/opt/ups-monitor/venv/bin/python3 /opt/ups-monitor/ups_monitor_v2/main.py
+Restart=always
+RestartSec=5
+
+# ── Database ─────────────────────────────────────────────────
+Environment=DB_HOST=localhost
+Environment=DB_PORT=5432
+Environment=DB_NAME=ups_monitor
+Environment=DB_USER=ups_user
+Environment=DB_PASSWORD=CHANGE_ME
+
+# ── SMTP / Email alerts ───────────────────────────────────────
+Environment=SMTP_HOST=smtp.yourdomain.com
+Environment=SMTP_PORT=587
+Environment=SMTP_USER=alerts@yourdomain.com
+Environment=SMTP_PASSWORD=CHANGE_ME
+Environment=SMTP_USE_TLS=true
+Environment=SMTP_FROM=UPS Monitor <alerts@yourdomain.com>
+Environment=ALERT_RECIPIENTS=engineer@yourdomain.com
+
+[Install]
+WantedBy=multi-user.target

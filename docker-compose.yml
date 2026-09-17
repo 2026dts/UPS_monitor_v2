@@ -1,0 +1,72 @@
+services:
+
+  # ── PostgreSQL database ──────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ups-postgres
+    environment:
+      POSTGRES_DB:       ups_monitor
+      POSTGRES_USER:     ups_user
+      POSTGRES_PASSWORD: ups_password     # ← change in production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"             # local only — not exposed to internet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ups_user -d ups_monitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── UPS Monitor application ──────────────────────────────
+  ups-monitor:
+    build: .
+    container_name: ups-monitor
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database (matches postgres service above)
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     ups_monitor
+      DB_USER:     ups_user
+      DB_PASSWORD: ups_password           # ← change in production
+
+      # UPS device IPs (override if different from config.py defaults)
+      # UPS1_IP: 10.10.10.75
+      # UPS2_IP: 10.10.10.74
+      # UPS3_IP: 10.10.10.76
+
+      # Email / SMTP  ← fill in your company SMTP details
+      SMTP_HOST:     smtp.yourdomain.com
+      SMTP_PORT:     587
+      SMTP_USER:     alerts@yourdomain.com
+      SMTP_PASSWORD: ""                   # ← set your password here
+      SMTP_USE_TLS:  "true"
+      SMTP_FROM:     "UPS Monitor <alerts@yourdomain.com>"
+      ALERT_RECIPIENTS: "engineer@yourdomain.com"   # comma-separated
+
+      # Poll settings
+      POLL_INTERVAL: 3
+      TCP_TIMEOUT:   5
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: ups-net

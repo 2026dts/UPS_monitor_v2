@@ -1,0 +1,6 @@
+# UPS Monitoring Platform v2
+# ThingsBoard / paho-mqtt dependency removed
+# Added: psycopg2 for PostgreSQL
+
+Flask==3.0.3
+psycopg2-binary==2.9.13
