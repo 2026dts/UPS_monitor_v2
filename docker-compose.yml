@@ -2,17 +2,15 @@ services:
 
   # ── PostgreSQL database ──────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     container_name: ups-postgres
     environment:
       POSTGRES_DB:       ups_monitor
       POSTGRES_USER:     ups_user
       POSTGRES_PASSWORD: ups_password     # ← change in production
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-    ports:
-      - "127.0.0.1:5432:5432"             # local only — not exposed to internet
+      - ./data/postgres:/var/lib/postgresql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ups_user -d ups_monitor"]
@@ -54,6 +52,7 @@ services:
       # Poll settings
       POLL_INTERVAL: 3
       TCP_TIMEOUT:   5
+      ENABLE_PC_SPEAKER_ALARM: "false"
 
     restart: unless-stopped
     healthcheck:
@@ -62,11 +61,5 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    # PostgreSQL data persists in ./data/postgres.
 
-volumes:
-  postgres_data:
-    driver: local
-
-networks:
-  default:
-    name: ups-net
